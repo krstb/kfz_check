@@ -7,6 +7,12 @@
     <!-- Einbindung der SheetJS Bibliothek für den Excel-Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
+        
+        /* Fix für PWA-Ränder und den blauen Balken */
+        html {background-color: #000000 !important;
+              overscroll-behavior-y: none;
+             }
+        
         :root {
             --primary-color: #0f172a;
             --secondary-color: #f1f5f9;
