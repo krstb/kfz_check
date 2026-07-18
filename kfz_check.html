@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PKW Abfahrtskontrolle</title>
+    <!-- Einbindung der SheetJS Bibliothek für den Excel-Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #0f172a;
+            --secondary-color: #f1f5f9;
+            --accent-color: #dc2626;
+            --text-color: #1e293b;
+            --success-color: #16a34a;
+            --bg-color: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 700px;
+            background: #ffffff;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        header {
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 1rem;
+            text-align: center;
+        }
+
+        h1 { font-size: 1.4rem; color: var(--primary-color); margin-bottom: 5px; }
+        
+        .date-display {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-bottom: 15px;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-excel { background: #16a34a; color: white; }
+        .btn-setup { background: #64748b; color: white; }
+        .btn:hover { opacity: 0.9; }
+
+        /* Task Card */
+        .task-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            padding: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .task-title { font-weight: 700; font-size: 1rem; color: var(--primary-color); }
+
+        .status-badge {
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 800;
+        }
+
+        .status-open { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
+        .status-ok { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .status-fail { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: vertical;
+            min-height: 50px;
+            margin-bottom: 10px;
+        }
+
+        .action-bar { display: flex; gap: 8px; align-items: center; }
+
+        .btn-choice {
+            flex: 1;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .btn-choice.ok:hover { background: #dcfce7; border-color: #22c55e; color: #166534; }
+        .btn-choice.fail:hover { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+        
+        .btn-del { 
+            padding: 8px 12px;
+            color: #94a3b8; 
+            border: 1px solid transparent; 
+            background: #f8fafc; 
+            font-size: 0.75rem; 
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-del:hover { 
+            background: #fee2e2; 
+            color: #ef4444; 
+            border-color: #fca5a5;
+        }
+
+        .add-section {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .add-section input { flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; }
+
+        footer {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <header>
+            <h1>🚗 PKW-Abfahrtskontrolle</h1>
+            <div class="date-display">Prüfdatum: <span id="currentDate"></span></div>
+
+            <div class="toolbar">
+                <button class="btn btn-setup" onclick="loadDefaultList()">📋 Standard-Liste laden</button>
+                <button class="btn btn-excel" onclick="exportToExcel()">📥 Excel Export</button>
+            </div>
+        </header>
+
+        <div id="taskList">
+            <!-- Karten werden hier generiert -->
+        </div>
+
+        <div class="add-section">
+            <input type="text" id="taskInput" placeholder="Weiterer Prüfpunkt...">
+            <button class="btn btn-primary" onclick="addTask()">+</button>
+        </div>
+
+        <footer>
+            PKW Prüf-App v2.1 | Daten lokal gespeichert
+        </footer>
+    </div>
+
+    <script>
+        const taskInput = document.getElementById('taskInput');
+        const taskList = document.getElementById('taskList');
+        const dateSpan = document.getElementById('currentDate');
+
+        const today = new Date().toLocaleDateString('de-DE');
+        dateSpan.textContent = today;
+
+        let tasks = JSON.parse(localStorage.getItem('pkwChecklistTasks')) || [];
+
+        function render() {
+            taskList.innerHTML = '';
+            tasks.forEach(task => {
+                const card = document.createElement('div');
+                card.className = 'task-card';
+                
+                let statusClass = 'status-open';
+                let statusText = 'Nicht geprüft';
+                if(task.status === 'ok') { statusClass = 'status-ok'; statusText = 'Mängelfrei'; }
+                if(task.status === 'fail') { statusClass = 'status-fail'; statusText = 'Mangel'; }
+
+                card.innerHTML = `
+                    <div class="task-header">
+                        <span class="task-title">${task.title}</span>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>
+                    <textarea placeholder="Hinweise, Mängel oder Messwerte..." 
+                              onchange="updateResult(${task.id}, this.value)">${task.result || ''}</textarea>
+                    <div class="action-bar">
+                        <button class="btn-choice ok" onclick="setStatus(${task.id}, 'ok')">✓ OK</button>
+                        <button class="btn-choice fail" onclick="setStatus(${task.id}, 'fail')">✗ Mangel</button>
+                        <button class="btn-del" onclick="deleteTask(${task.id})" title="Punkt entfernen">Entfernen</button>
+                    </div>
+                `;
+                taskList.appendChild(card);
+            });
+            localStorage.setItem('pkwChecklistTasks', JSON.stringify(tasks));
+        }
+
+        function loadDefaultList() {
+            if(tasks.length > 0 && !confirm("Aktuelle Liste durch Standard-Liste ersetzen? Alle bisherigen Eingaben gehen verloren.")) return;
+            
+            const defaults = [
+                "Reifen: Profiltiefe kontrolliert",
+                "Reifen: Reifendruck (Sichtprüfung/Messung)",
+                "Beleuchtung: Scheinwerfer & Fernlicht",
+                "Beleuchtung: Blinker & Warnblinker",
+                "Beleuchtung: Bremslicht & Rückleuchten",
+                "Motoröl: Füllstand kontrolliert",
+                "Kühlwasser: Füllstand kontrolliert",
+                "Scheibenwaschwasser: Füllstand",
+                "Bremsflüssigkeit: Stand kontrolliert",
+                "Bremsanlage: Funktionsprüfung",
+                "Kraftstoffvorrat: Ausreichend für Fahrt",
+                "Ladungssicherung & Gurte",
+                "Innenraum & Scheiben sauber",
+                "Zulassungsbescheinigung Teil I vorhanden",
+                "Tankkarte vorhanden",
+                "Zubehör: Verbandskasten (Ablaufdatum prüfen)",
+                "Zubehör: Warnweste(n) vorhanden",
+                "Zubehör: Warndreieck vorhanden"
+            ];
+            
+            tasks = defaults.map((item, index) => ({
+                id: Date.now() + index,
+                title: item,
+                status: 'open',
+                result: ''
+            }));
+            render();
+        }
+
+        function addTask() {
+            if(!taskInput.value.trim()) return;
+            tasks.push({
+                id: Date.now(),
+                title: taskInput.value,
+                status: 'open',
+                result: ''
+            });
+            taskInput.value = '';
+            render();
+        }
+
+        function exportToExcel() {
+            if (tasks.length === 0) { alert("Keine Daten vorhanden."); return; }
+
+            const excelData = tasks.map(t => ({
+                "Datum": today,
+                "Prüfpunkt": t.title,
+                "Status": t.status === 'ok' ? 'Mängelfrei' : (t.status === 'fail' ? 'Mangel' : 'Offen'),
+                "Bemerkung": t.result
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(excelData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "PKW-Check");
+            const fileName = `PKW_Check_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+
+        window.updateResult = (id, text) => {
+            const task = tasks.find(t => t.id === id);
+            if(task) task.result = text;
+            localStorage.setItem('pkwChecklistTasks', JSON.stringify(tasks));
+        };
+
+        window.setStatus = (id, status) => {
+            const task = tasks.find(t => t.id === id);
+            if(task) task.status = status;
+            render();
+        };
+
+        window.deleteTask = (id) => {
+            tasks = tasks.filter(t => t.id !== id);
+            render();
+        };
+
+        render();
+    </script>
+</body>
+</html>
