@@ -1,7 +1,7 @@
 {
-  "short_name": "Vorlage APP",
-  "name": "vorlage",
-  "description": "beschreibung",
+  "short_name": "KFZ CHECK",
+  "name": "kfz_check",
+  "description": "Abfahrtskontrolle",
   "start_url": "index.html",
   "display": "standalone",
   "orientation": "portrait",
